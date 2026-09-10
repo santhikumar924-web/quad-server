@@ -12,9 +12,13 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ---- in-memory state (swap for Redis/a DB before you have more than one server process) ----
-const users = new Map();       // socket.id -> { username, gender, partnerId, waiting }
+const users = new Map();       // socket.id -> { username, gender, interests, partnerId, waiting }
 const waitingQueue = [];       // array of socket.id, FIFO
 const reports = [];            // { at, reporterUsername, reportedUsername, reason }
+
+function broadcastOnlineCount() {
+  io.emit('online_count', { count: users.size });
+}
 
 function safeUser(id) {
   return users.get(id);
@@ -45,11 +49,16 @@ function tryMatch() {
     b.waiting = false;
     b.room = room;
 
+    // find shared interests
+    const aInterests = a.interests || [];
+    const bInterests = b.interests || [];
+    const shared = aInterests.filter(i => bInterests.includes(i));
+
     io.sockets.sockets.get(aId)?.join(room);
     io.sockets.sockets.get(bId)?.join(room);
 
-    io.to(aId).emit('matched', { partnerUsername: b.username, partnerGender: b.gender });
-    io.to(bId).emit('matched', { partnerUsername: a.username, partnerGender: a.gender });
+    io.to(aId).emit('matched', { partnerUsername: b.username, partnerGender: b.gender, sharedInterests: shared });
+    io.to(bId).emit('matched', { partnerUsername: a.username, partnerGender: a.gender, sharedInterests: shared });
   }
 }
 
@@ -77,16 +86,25 @@ function endPair(socketId, { reason } = {}) {
 }
 
 io.on('connection', (socket) => {
-  socket.on('register', ({ username, gender }) => {
+  // send current online count to newly connected client
+  socket.emit('online_count', { count: users.size });
+
+  socket.on('register', ({ username, gender, interests }) => {
     const cleanName = String(username || '').trim().slice(0, 24) || `guest_${socket.id.slice(0, 5)}`;
     const cleanGender = gender === 'Male' || gender === 'Female' ? gender : 'Male';
+    const validInterests = ['Exams', 'Hostel Life', 'Gaming', 'Coding', 'Movies', 'Music', 'Sports', 'Relationships'];
+    const cleanInterests = Array.isArray(interests)
+      ? interests.filter(i => validInterests.includes(i)).slice(0, 5)
+      : [];
     users.set(socket.id, {
       username: cleanName,
       gender: cleanGender,
+      interests: cleanInterests,
       partnerId: null,
       room: null,
       waiting: false,
     });
+    broadcastOnlineCount();
     socket.emit('registered', { username: cleanName, gender: cleanGender });
   });
 
@@ -153,6 +171,7 @@ io.on('connection', (socket) => {
     endPair(socket.id, { reason: 'disconnected' });
     removeFromQueue(socket.id);
     users.delete(socket.id);
+    broadcastOnlineCount();
   });
 });
 

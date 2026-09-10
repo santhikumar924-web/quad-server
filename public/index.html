@@ -338,6 +338,84 @@
     cursor:pointer;
   }
   .reason.picked{ border-color: var(--rose); background: rgba(226,104,95,0.12); }
+
+  /* Online count */
+  .online-bar{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    font-size: 12.5px;
+    color: var(--ink-faint);
+    margin-bottom: 20px;
+    padding: 8px 14px;
+    background: rgba(85,194,155,0.08);
+    border: 1px solid rgba(85,194,155,0.18);
+    border-radius: 100px;
+    width: fit-content;
+  }
+  .online-dot{
+    width:7px; height:7px;
+    border-radius:50%;
+    background: var(--sage);
+    animation: online-pulse 2s ease-in-out infinite;
+  }
+  @keyframes online-pulse{
+    0%,100%{ opacity:1; }
+    50%{ opacity:0.4; }
+  }
+  .online-bar b{ color: var(--sage); font-weight:600; }
+
+  /* Interest tags */
+  .interest-section{ margin-top: 18px; }
+  .interest-grid{ display:flex; flex-wrap:wrap; gap:8px; }
+  .interest-tag{
+    border: 1px solid var(--line-strong);
+    padding: 7px 14px;
+    border-radius: 100px;
+    font-size: 12.5px;
+    color: var(--ink-dim);
+    cursor:pointer;
+    user-select:none;
+    transition: all 0.15s ease;
+  }
+  .interest-tag:hover{
+    border-color: var(--ink-faint);
+    color: var(--ink);
+  }
+  .interest-tag.picked{
+    border-color: var(--gold);
+    color: var(--gold);
+    background: rgba(232,163,61,0.1);
+  }
+
+  /* Queue timer */
+  .queue-timer{
+    font-size: 26px;
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    color: var(--gold);
+    margin-bottom: 6px;
+    letter-spacing: 0.04em;
+  }
+  .queue-timer-label{
+    font-size: 12px;
+    color: var(--ink-faint);
+    margin-bottom: 18px;
+  }
+
+  /* Shared interests badge in chat */
+  .shared-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    background: rgba(232,163,61,0.1);
+    border: 1px solid rgba(232,163,61,0.2);
+    color: var(--gold);
+    font-size: 11.5px;
+    padding: 4px 10px;
+    border-radius: 100px;
+    margin-top: 2px;
+  }
 </style>
 </head>
 <body>
@@ -351,6 +429,10 @@
   <div class="card">
 
     <div class="screen active" id="screen-landing">
+      <div class="online-bar" id="online-bar">
+        <span class="online-dot"></span>
+        <span><b id="online-count">0</b> VITians online right now</span>
+      </div>
       <h1 class="headline">Talk to a random VITian, right now.</h1>
       <p class="sub">One-on-one, anonymous, text chat — open only to VIT-AP students. No real names, no profiles, no history.</p>
 
@@ -364,6 +446,20 @@
         <div class="gender-opt" data-gender="Female" onclick="pickGender('Female', this)">Female</div>
       </div>
       <div class="field-error" id="gender-error">Pick one so we know how to fill the "you" side of chat.</div>
+
+      <div class="interest-section">
+        <label class="field-label">What are you into? <span style="color:var(--ink-faint);">(optional)</span></label>
+        <div class="interest-grid" id="interest-grid">
+          <div class="interest-tag" data-interest="Exams">📝 Exams</div>
+          <div class="interest-tag" data-interest="Hostel Life">🏠 Hostel Life</div>
+          <div class="interest-tag" data-interest="Gaming">🎮 Gaming</div>
+          <div class="interest-tag" data-interest="Coding">💻 Coding</div>
+          <div class="interest-tag" data-interest="Movies">🎬 Movies</div>
+          <div class="interest-tag" data-interest="Music">🎵 Music</div>
+          <div class="interest-tag" data-interest="Sports">⚽ Sports</div>
+          <div class="interest-tag" data-interest="Relationships">💬 Relationships</div>
+        </div>
+      </div>
 
       <button class="btn btn-primary" onclick="goToGuidelines()">Continue</button>
     </div>
@@ -391,6 +487,8 @@
           <div class="radar-ring"></div>
           <div class="radar-core">◎</div>
         </div>
+        <div class="queue-timer" id="queue-timer">0:00</div>
+        <div class="queue-timer-label">Time in queue</div>
         <div class="match-status" id="match-status">Looking for a fellow VITian<b id="match-dots">...</b></div>
         <button class="btn btn-ghost" onclick="cancelMatching()">Cancel</button>
       </div>
@@ -459,6 +557,7 @@ const socket = io();
 let selectedReason = null;
 let myUsername = '';
 let myGender = null;
+let myInterests = [];
 let iAmWaiting = false;
 
 function pickGender(g, el){
@@ -466,6 +565,44 @@ function pickGender(g, el){
   document.querySelectorAll('.gender-opt').forEach(o=>o.classList.remove('picked'));
   el.classList.add('picked');
   document.getElementById('gender-error').style.display = 'none';
+}
+
+// Interest tag toggling
+document.getElementById('interest-grid').addEventListener('click', (e) => {
+  const tag = e.target.closest('.interest-tag');
+  if (!tag) return;
+  const interest = tag.dataset.interest;
+  tag.classList.toggle('picked');
+  if (myInterests.includes(interest)) {
+    myInterests = myInterests.filter(i => i !== interest);
+  } else {
+    myInterests.push(interest);
+  }
+});
+
+// Online count
+socket.on('online_count', ({ count }) => {
+  document.getElementById('online-count').textContent = count;
+});
+
+// Match-found sound using Web Audio API
+function playMatchSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const notes = [523.25, 659.25, 783.99]; // C5, E5, G5 arpeggio
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.12);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.4);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.12);
+      osc.stop(ctx.currentTime + i * 0.12 + 0.4);
+    });
+  } catch(e) { /* audio not supported */ }
 }
 
 function showScreen(id){
@@ -492,7 +629,7 @@ function goToGuidelines(){
   }
   if(!ok) return;
   myUsername = username;
-  socket.emit('register', { username: myUsername, gender: myGender });
+  socket.emit('register', { username: myUsername, gender: myGender, interests: myInterests });
   showScreen('screen-guidelines');
 }
 
@@ -505,6 +642,8 @@ document.getElementById('agree-check').addEventListener('change', function(){
 function goHome(){ showScreen('screen-landing'); }
 
 let matchDotsInterval = null;
+let queueTimerInterval = null;
+let queueStartTime = null;
 function startMatching(){
   showScreen('screen-matching');
   const statusEl = document.getElementById('match-status');
@@ -514,12 +653,23 @@ function startMatching(){
     n = (n+1)%4;
     document.getElementById('match-dots').textContent = '.'.repeat(n) || '\u00A0';
   }, 400);
+  // Queue timer
+  queueStartTime = Date.now();
+  clearInterval(queueTimerInterval);
+  document.getElementById('queue-timer').textContent = '0:00';
+  queueTimerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - queueStartTime) / 1000);
+    const mins = Math.floor(elapsed / 60);
+    const secs = String(elapsed % 60).padStart(2, '0');
+    document.getElementById('queue-timer').textContent = `${mins}:${secs}`;
+  }, 1000);
   iAmWaiting = true;
   socket.emit('find_match');
 }
 
 function cancelMatching(){
   clearInterval(matchDotsInterval);
+  clearInterval(queueTimerInterval);
   iAmWaiting = false;
   socket.emit('cancel_match');
   showScreen('screen-landing');
@@ -561,14 +711,25 @@ function hideTyping(){
   if(el) el.remove();
 }
 
-socket.on('matched', ({ partnerUsername, partnerGender }) => {
+socket.on('matched', ({ partnerUsername, partnerGender, sharedInterests }) => {
   clearInterval(matchDotsInterval);
+  clearInterval(queueTimerInterval);
   iAmWaiting = false;
   threadEl().innerHTML = '';
   showScreen('screen-chat');
+  playMatchSound();
   document.getElementById('chat-partner-name').textContent = partnerUsername;
-  document.getElementById('shared-interest-line').textContent = partnerGender + ' · connected just now';
+  // Show shared interests if any
+  const subLine = document.getElementById('shared-interest-line');
+  if (sharedInterests && sharedInterests.length > 0) {
+    subLine.innerHTML = partnerGender + ' · <span class="shared-badge">✨ ' + sharedInterests.join(', ') + '</span>';
+  } else {
+    subLine.textContent = partnerGender + ' · connected just now';
+  }
   addSystem("You're now chatting with a stranger. Be kind.");
+  if (sharedInterests && sharedInterests.length > 0) {
+    addSystem('You both like: ' + sharedInterests.join(', ') + ' — great icebreaker!');
+  }
 });
 
 socket.on('message', ({ text }) => {
