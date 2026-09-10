@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Quad — talk to a fellow VITian</title>
+<link rel="icon" type="image/svg+xml" href="/logo.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -39,20 +40,46 @@
   }
   .brand{
     display:flex;
-    align-items:baseline;
-    gap:10px;
-    margin-bottom: 28px;
+    align-items:center;
+    gap:14px;
+    margin-bottom: 26px;
+  }
+  .brand-logo-wrap{
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.25s ease;
+    cursor: pointer;
+  }
+  .brand-logo-wrap:hover{
+    transform: scale(1.08) rotate(3deg);
+    filter: drop-shadow(0 0 12px rgba(232, 163, 61, 0.45));
+  }
+  .brand-logo-wrap svg{
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .brand-text{
+    display:flex;
+    flex-direction:column;
   }
   .brand-mark{
     font-family:'Fraunces', serif;
     font-weight:600;
-    font-size: 22px;
+    font-size: 24px;
     letter-spacing: 0.01em;
+    line-height: 1.1;
   }
   .brand-mark span{ color: var(--gold); }
   .brand-tag{
-    font-size:12.5px;
+    font-size:12px;
     color: var(--ink-faint);
+    margin-top: 3px;
+    letter-spacing: 0.02em;
   }
   .card{
     background: var(--surface);
@@ -422,8 +449,44 @@
 <div class="app">
 
   <div class="brand">
-    <div class="brand-mark">quad<span>.</span></div>
-    <div class="brand-tag">anonymous chat, VIT-AP only</div>
+    <div class="brand-logo-wrap" onclick="goHome()" title="Quad">
+      <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="brand-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#242D57"/>
+            <stop offset="100%" stop-color="#141933"/>
+          </linearGradient>
+          <linearGradient id="brand-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#FFD278"/>
+            <stop offset="60%" stop-color="#E8A33D"/>
+            <stop offset="100%" stop-color="#C7821B"/>
+          </linearGradient>
+          <linearGradient id="brand-border" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="rgba(255, 210, 120, 0.5)"/>
+            <stop offset="100%" stop-color="rgba(232, 163, 61, 0.1)"/>
+          </linearGradient>
+          <filter id="brand-glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="1.5" result="blur"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+        </defs>
+        <rect x="1" y="1" width="42" height="42" rx="12" fill="url(#brand-bg)" stroke="url(#brand-border)" stroke-width="1.2"/>
+        <path d="M 21 8.5 C 27.9 8.5 33.5 14.1 33.5 21 C 33.5 24.1 32.35 26.95 30.45 29.15 L 33.5 34 L 28 32.3 C 25.95 33.05 23.55 33.5 21 33.5 C 14.1 33.5 8.5 27.9 8.5 21 C 8.5 14.1 14.1 8.5 21 8.5 Z" 
+              stroke="url(#brand-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="rgba(232, 163, 61, 0.08)"/>
+        <line x1="16.5" y1="16.5" x2="25.5" y2="16.5" stroke="rgba(232, 163, 61, 0.35)" stroke-width="1.2" stroke-dasharray="2 1.5"/>
+        <line x1="16.5" y1="24.5" x2="25.5" y2="24.5" stroke="rgba(232, 163, 61, 0.35)" stroke-width="1.2" stroke-dasharray="2 1.5"/>
+        <line x1="16.5" y1="16.5" x2="16.5" y2="24.5" stroke="rgba(232, 163, 61, 0.35)" stroke-width="1.2" stroke-dasharray="2 1.5"/>
+        <line x1="25.5" y1="16.5" x2="25.5" y2="24.5" stroke="rgba(232, 163, 61, 0.35)" stroke-width="1.2" stroke-dasharray="2 1.5"/>
+        <circle cx="16.5" cy="16.5" r="2.3" fill="url(#brand-gold)" filter="url(#brand-glow)"/>
+        <circle cx="25.5" cy="16.5" r="2.3" fill="url(#brand-gold)" filter="url(#brand-glow)"/>
+        <circle cx="16.5" cy="24.5" r="2.3" fill="url(#brand-gold)" filter="url(#brand-glow)"/>
+        <circle cx="25.5" cy="24.5" r="2.3" fill="url(#brand-gold)" filter="url(#brand-glow)"/>
+      </svg>
+    </div>
+    <div class="brand-text">
+      <div class="brand-mark">quad<span>.</span></div>
+      <div class="brand-tag">anonymous chat, VIT-AP only</div>
+    </div>
   </div>
 
   <div class="card">
